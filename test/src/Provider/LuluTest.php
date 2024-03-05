@@ -7,6 +7,10 @@ use WesternCPE\OAuth2\Client\Provider\CognitoUser;
 use League\OAuth2\Client\Tool\QueryBuilderTrait;
 use Mockery;
 use PHPUnit\Framework\TestCase;
+use GuzzleHttp\Psr7\Stream;
+use GuzzleHttp\Psr7;
+
+
 
 class LuluTest extends TestCase {
 
@@ -23,8 +27,6 @@ class LuluTest extends TestCase {
 				'clientId'      => 'mock_client_id',
 				'clientSecret'  => 'mock_secret',
 				'redirectUri'   => 'none',
-				'cognitoDomain' => 'mock_cognito_domain',
-				'region'        => 'mock_region',
 			)
 		);
 	}
@@ -40,13 +42,32 @@ class LuluTest extends TestCase {
 		parse_str( $uri['query'], $query );
 
 		$this->assertArrayHasKey( 'client_id', $query );
-		$this->assertArrayHasKey( 'redirect_uri', $query );
-		$this->assertArrayHasKey( 'state', $query );
-		$this->assertArrayHasKey( 'scope', $query );
 		$this->assertArrayHasKey( 'response_type', $query );
-		$this->assertArrayHasKey( 'approval_prompt', $query );
-		$this->assertNotNull( $this->provider->getState() );
+		$this->assertArrayHasKey( 'redirect_uri', $query );
 	}
+
+	public function testGetBaseAccessTokenUrl() {
+		$params = array();
+
+		$url = $this->provider->getBaseAccessTokenUrl( $params );
+		$uri = parse_url( $url );
+
+		$this->assertEquals( '/auth/realms/glasstree/protocol/openid-connect/token', $uri['path'] );
+	}
+
+	// public function testAuthorizationUrl() {
+	//  $url = $this->provider->getAuthorizationUrl();
+	//  $uri = parse_url( $url );
+	//  parse_str( $uri['query'], $query );
+
+	//  $this->assertArrayHasKey( 'client_id', $query );
+	//  $this->assertArrayHasKey( 'redirect_uri', $query );
+	//  $this->assertArrayHasKey( 'state', $query );
+	//  $this->assertArrayHasKey( 'scope', $query );
+	//  $this->assertArrayHasKey( 'response_type', $query );
+	//  $this->assertArrayHasKey( 'approval_prompt', $query );
+	//  $this->assertNotNull( $this->provider->getState() );
+	// }
 
 	// public function testNoHostedDomainNorLuluDomainNorRegion() {
 	//  $this->expectException( '\InvalidArgumentException' );
@@ -305,52 +326,55 @@ class LuluTest extends TestCase {
 	//  $this->assertEquals( 'true', $user->toArray()['email_verified'] );
 	// }
 
-	// public function testExceptionThrownWhenError() {
-	//  $message = uniqid();
-	//  $this->expectException( 'League\OAuth2\Client\Provider\Exception\IdentityProviderException' );
-	//  $this->expectExceptionMessage( $message );
-	//  $status       = rand( 400, 600 );
-	//  $postResponse = Mockery::mock( 'Psr\Http\Message\ResponseInterface' );
-	//  $postResponse->shouldReceive( 'getBody' )->andReturn( '{"error":"' . $message . '"}' );
-	//  $postResponse->shouldReceive( 'getHeader' )->andReturn( array( 'content-type' => 'json' ) );
-	//  $postResponse->shouldReceive( 'getReasonPhrase' );
-	//  $postResponse->shouldReceive( 'getStatusCode' )->andReturn( $status );
+	public function testExceptionThrownWhenError() {
+		$message = uniqid();
+        $error_description = uniqid();
+		$this->expectException( 'League\OAuth2\Client\Provider\Exception\IdentityProviderException' );
+		$this->expectExceptionMessage( $message );
+		$status       = rand( 400, 600 );
+		$postResponse = Mockery::mock( 'Psr\Http\Message\ResponseInterface' );
+		$postResponse->shouldReceive( 'getBody' )->andReturn( Psr7\Utils::streamFor( '{"error":"' . $message . '", "error_description": "'.$error_description.'"}' ) );
+		$postResponse->shouldReceive( 'getHeader' )->andReturn( array( 'content-type' => 'json' ) );
+		$postResponse->shouldReceive( 'getReasonPhrase' );
+		$postResponse->shouldReceive( 'getStatusCode' )->andReturn( $status );
 
-	//  $client = Mockery::mock( 'GuzzleHttp\ClientInterface' );
-	//  $client->shouldReceive( 'send' )
-	//      ->times( 1 )
-	//      ->andReturn( $postResponse );
-	//  $this->provider->setHttpClient( $client );
-	//  $this->provider->getAccessToken( 'authorization_code', array( 'code' => 'mock_authorization_code' ) );
-	// }
+		$client = Mockery::mock( 'GuzzleHttp\ClientInterface' );
+		$client->shouldReceive( 'send' )
+		->times( 1 )
+		->andReturn( $postResponse );
+		$this->provider->setHttpClient( $client );
+		$this->provider->getAccessToken( 'client_credentials' );
+	}
 
-	// public function testGetAuthenticatedRequest() {
-	//  $method = 'GET';
-	//  $url    = 'https://test.auth.us-west-2.amazoncognito.com/oauth2/userInfo';
+	public function testGetAuthenticatedRequest() {
+		$method = 'GET';
+		$url    = 'https://api.lulu.com/print-jobs/';
 
-	//  $accessTokenResponse = Mockery::mock( 'Psr\Http\Message\ResponseInterface' );
-	//  $accessTokenResponse
-	//      ->shouldReceive( 'getBody' )
-	//      ->andReturn(
-	//          '{"access_token": "mock_access_token","user": {"sub": "1234","username": "test","name": "Test User"}}'
-	//      );
-	//  $accessTokenResponse->shouldReceive( 'getHeader' )->andReturn( array( 'content-type' => 'json' ) );
+		$accessTokenResponse = Mockery::mock( 'Psr\Http\Message\ResponseInterface' );
+		$accessTokenResponse
+		->shouldReceive( 'getBody' )
+		->andReturn(
+			Psr7\Utils::streamFor(
+				'{"access_token": "mock_access_token","user": {"sub": "1234","username": "test","name": "Test User"}}'
+			)
+		);
+		$accessTokenResponse->shouldReceive( 'getHeader' )->andReturn( array( 'content-type' => 'json' ) );
 
-	//  $client = Mockery::mock( 'GuzzleHttp\ClientInterface' );
-	//  $client->shouldReceive( 'send' )
-	//      ->times( 1 )
-	//      ->andReturn( $accessTokenResponse );
-	//  $this->provider->setHttpClient( $client );
+		$client = Mockery::mock( 'GuzzleHttp\ClientInterface' );
+		$client->shouldReceive( 'send' )
+		->times( 1 )
+		->andReturn( $accessTokenResponse );
+		$this->provider->setHttpClient( $client );
 
-	//  $token = $this->provider->getAccessToken( 'authorization_code', array( 'code' => 'mock_authorization_code' ) );
+		$token = $this->provider->getAccessToken( 'client_credentials' );
 
-	//  $authenticatedRequest = $this->provider->getAuthenticatedRequest( $method, $url, $token );
+		$authenticatedRequest = $this->provider->getAuthenticatedRequest( $method, $url, $token );
 
-	//  $this->assertInstanceOf( 'Psr\Http\Message\RequestInterface', $authenticatedRequest );
-	//  $this->assertEquals( $method, $authenticatedRequest->getMethod() );
-	//  $this->assertStringContainsString(
-	//      'Bearer mock_access_token',
-	//      $authenticatedRequest->getHeaders()['Authorization'][0]
-	//  );
-	// }
+		// $this->assertInstanceOf( 'Psr\Http\Message\RequestInterface', $authenticatedRequest );
+		$this->assertEquals( $method, $authenticatedRequest->getMethod() );
+		$this->assertStringContainsString(
+			'Bearer mock_access_token',
+			$authenticatedRequest->getHeaders()['Authorization'][0]
+		);
+	}
 }

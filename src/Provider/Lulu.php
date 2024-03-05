@@ -12,13 +12,31 @@ class Lulu extends AbstractProvider {
 
 	use BearerAuthorizationTrait;
 
+	// const LULU_API_URL = 'https://api.lulu.com';
+
+	/**
+	 * @var array List of scopes that will be used for authentication.
+	 *
+	 * Valid scopes: phone, email, openid, aws.cognito.signin.user.admin, profile
+	 * Defaults to email, openid
+	 *
+	 */
+	protected $scopes = array();
+
+	/**
+	 * @return array
+	 */
+	public function getScopes() {
+		return $this->scopes;
+	}
+
 	/**
 	 * Get authorization url to begin OAuth flow
 	 *
 	 * @return string
 	 */
 	public function getBaseAuthorizationUrl() {
-		// return 'https://www.amazon.com/ap/oa';
+		return LULU_API_URL . '/ap/oa';
 	}
 
 	/**
@@ -29,7 +47,7 @@ class Lulu extends AbstractProvider {
 	 * @return string
 	 */
 	public function getBaseAccessTokenUrl( array $params ) {
-		// return 'https://api.amazon.com/auth/o2/token';
+		return LULU_API_URL . '/auth/realms/glasstree/protocol/openid-connect/token';
 	}
 
 	/**
@@ -40,7 +58,7 @@ class Lulu extends AbstractProvider {
 	 * @return string
 	 */
 	public function getResourceOwnerDetailsUrl( AccessToken $token ) {
-		// return 'https://api.amazon.com/user/profile';
+		return LULU_API_URL . '/user/profile';
 	}
 
 	/**
@@ -49,7 +67,7 @@ class Lulu extends AbstractProvider {
 	 * @return array
 	 */
 	protected function getDefaultScopes() {
-		// return array( 'profile' );
+		return array( 'client_credentials' );
 	}
 
 	/**
@@ -59,7 +77,7 @@ class Lulu extends AbstractProvider {
 	 * @return string Scope separator, defaults to ','
 	 */
 	protected function getScopeSeparator() {
-		// return ' ';
+		return ' ';
 	}
 
 	/**
@@ -71,17 +89,17 @@ class Lulu extends AbstractProvider {
 	 * @throws IdentityProviderException
 	 */
 	protected function checkResponse( ResponseInterface $response, $data ) {
-		// if ( isset( $data['error'] ) ) {
-		//  $statusCode       = $response->getStatusCode();
-		//  $error            = $data['error'];
-		//  $errorDescription = $data['error_description'];
-		//  $errorLink        = ( isset( $data['error_uri'] ) ? $data['error_uri'] : false );
-		//  throw new IdentityProviderException(
-		//      $statusCode . ' - ' . $errorDescription . ': ' . $error . ( $errorLink ? ' (see: ' . $errorLink . ')' : '' ),
-		//      $response->getStatusCode(),
-		//      $response
-		//  );
-		// }
+		if ( isset( $data['error'] ) ) {
+			$statusCode       = $response->getStatusCode();
+			$error            = $data['error'];
+			$errorDescription = $data['error_description'];
+			$errorLink        = ( isset( $data['error_uri'] ) ? $data['error_uri'] : false );
+			throw new IdentityProviderException(
+				$statusCode . ' - ' . $errorDescription . ': ' . $error . ( $errorLink ? ' (see: ' . $errorLink . ')' : '' ),
+				$response->getStatusCode(),
+				$response
+			);
+		}
 	}
 
 	/**
@@ -104,10 +122,10 @@ class Lulu extends AbstractProvider {
 	 * @return Psr\Http\Message\RequestInterface
 	 */
 	protected function getAccessTokenRequest( array $params ) {
-		// $request = parent::getAccessTokenRequest( $params );
-		// $uri     = $request->getUri()
-		//  ->withUserInfo( $this->clientId, $this->clientSecret );
-		// return $request->withUri( $uri );
+		$request = parent::getAccessTokenRequest( $params );
+		$uri     = $request->getUri()
+		->withUserInfo( $this->clientId, $this->clientSecret );
+		return $request->withUri( $uri );
 	}
 }
 
