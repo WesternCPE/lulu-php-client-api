@@ -34,10 +34,9 @@ try {
     $token = $luluProvider->getAccessToken( 'client_credentials' );
 
     $method = 'GET';
-	$url    = 'https://api.lulu.com/print-jobs/';
+    $url    = 'https://api.lulu.com/print-jobs/';
 
     $authenticatedRequest = $luluProvider->getAuthenticatedRequest( $method, $url, $token );
-
 
 } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
 
