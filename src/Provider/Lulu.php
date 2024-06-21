@@ -89,13 +89,11 @@ class Lulu extends AbstractProvider {
 	 * @throws IdentityProviderException
 	 */
 	protected function checkResponse( ResponseInterface $response, $data ) {
-		if ( isset( $data['error'] ) ) {
-			$statusCode       = $response->getStatusCode();
-			$error            = $data['error'];
-			$errorDescription = $data['error_description'];
-			$errorLink        = ( isset( $data['error_uri'] ) ? $data['error_uri'] : false );
+		if ( 200 !== $response->getStatusCode() ) {
+			$statusCode = $response->getStatusCode();
+			$error      = $data;
 			throw new IdentityProviderException(
-				$statusCode . ' - ' . $errorDescription . ': ' . $error . ( $errorLink ? ' (see: ' . $errorLink . ')' : '' ),
+				$statusCode . ' - ' . json_encode( $error ),
 				$response->getStatusCode(),
 				$response
 			);
